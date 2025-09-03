@@ -1,7 +1,6 @@
+
 rule download_sra:
     output: temp("raw/{sample}.done")
-    params: 
-        accession=lambda wc: samples_df.loc[samples_df["alias"] == wc.sample, "sample"].values[0]
     threads: 4
     log:
         "logs/download/{sample}.log"
@@ -9,21 +8,29 @@ rule download_sra:
         """
         set -euo pipefail
         {{
-            fasterq-dump --split-files --threads {threads} {params.accession} -O raw/
+            if [[ -f raw/{wildcards.sample}_R1.fastq.gz || -f raw/{wildcards.sample}.fastq.gz ]]; then
+                echo "FASTQ files for {wildcards.sample} already exist, skipping download."
+                touch {output}
+                exit 0
+            fi
+
+            fasterq-dump --split-files --threads {threads} {wildcards.sample} -O raw/
             
             # paired-end if both _1 and _2 exist
-            if [[ -f raw/{params.accession}_1.fastq && -f raw/{params.accession}_2.fastq ]]; then
-                pigz -c raw/{params.accession}_1.fastq > raw/{wildcards.sample}_R1.fastq.gz
-                pigz -c raw/{params.accession}_2.fastq > raw/{wildcards.sample}_R2.fastq.gz
+            if [[ -f raw/{wildcards.sample}_1.fastq && -f raw/{wildcards.sample}_2.fastq ]]; then
+                pigz -c raw/{wildcards.sample}_1.fastq > raw/{wildcards.sample}_R1.fastq.gz
+                pigz -c raw/{wildcards.sample}_2.fastq > raw/{wildcards.sample}_R2.fastq.gz
+            
             # otherwise single-end
-            elif [[ -f raw/{params.accession}_1.fastq ]]; then
-                pigz -c raw/{params.accession}_1.fastq > raw/{wildcards.sample}.fastq.gz
+            elif [[ -f raw/{wildcards.sample}_1.fastq ]]; then
+                pigz -c raw/{wildcards.sample}_1.fastq > raw/{wildcards.sample}.fastq.gz
+            
             else
                 echo "No FASTQ found for {wildcards.sample}" >&2
                 exit 1
             fi
             
-            rm -fv raw/{params.accession}*.fastq
+            rm -fv raw/{wildcards.sample}*.fastq
 
             touch {output}
         }} &> {log}

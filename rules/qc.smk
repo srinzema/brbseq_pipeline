@@ -41,9 +41,10 @@ rule fastp:
         }} &> {log}
         """
 
+
 rule multiqc:
     input:
-        expand("trimmed/reports/{sample}.html", sample=samples_df["alias"].tolist())
+        expand("trimmed/reports/{sample}.html", sample=samples_df["sample"].tolist())
     output:
         "multiqc_report.html"
     threads: 4
