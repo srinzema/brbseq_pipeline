@@ -1,0 +1,52 @@
+# Snakemake
+.snakemake/
+*.snakemake.log
+
+# Conda / environments
+envs/*/.snakemake_conda/*
+.conda/
+*.conda
+*.yaml.lock
+
+# Logs / outputs
+logs/
+*.log
+*.err
+*.out
+
+# Results / intermediates
+results/
+output/
+*.tmp
+*.temp
+*.bak
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Editors / system
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Tests
+tests/test_data/*
+!tests/test_config.yaml
+tests/__pycache__/
+tests/*.pyc
+tests/*.pyo
+tests/*.pyd
+tests/*.egg-info/
+tests/.eggs/
