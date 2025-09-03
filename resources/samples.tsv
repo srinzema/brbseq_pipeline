@@ -1,0 +1,3 @@
+sample	alias	genome
+SRR13608903	sample_1	hg38    # paired end
+SRR6826758	sample_2	hg38    # single end

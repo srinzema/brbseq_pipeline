@@ -1,0 +1,5 @@
+# Input data
+samples: samples.tsv
+
+# Output directory
+outdir: results/
