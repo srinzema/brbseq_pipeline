@@ -1,3 +1,14 @@
+rule sample_renaming:
+    output: "trimmed/reports/.sample_renaming.tsv"
+    run:
+        with open(output[0], "w") as out_file:
+            for _, row in samples_df.iterrows():
+                sample = row["sample"]
+                alias = row.get("alias") or sample
+                out_file.write(f"{sample}\t{alias}\n")
+                out_file.write(f"{sample}_R1\t{alias}\n")
+
+
 rule fastp:
     input: "raw/{sample}.done"
     output:    
@@ -44,7 +55,9 @@ rule fastp:
 
 rule multiqc:
     input:
-        expand("trimmed/reports/{sample}.html", sample=samples_df["sample"].tolist())
+        fastp=expand("trimmed/reports/{sample}.json", sample=samples_df["sample"].tolist()),
+        star_solo=expand("STAR/{sample}/{sample}_Log.final.out", sample=brbseq_samples),
+        sample_renaming="trimmed/reports/.sample_renaming.tsv"
     output:
         "multiqc_report.html"
     threads: 4
@@ -54,7 +67,7 @@ rule multiqc:
         set -euo pipefail
         {{
             rm -rv trimmed/reports/multiqc* || true
-            multiqc trimmed/reports/ -o trimmed/reports/
+            multiqc {input} --config {workflow.basedir}/resources/multiqc_config.yaml --replace-names {input.sample_renaming} -o trimmed/reports/
             mv -v trimmed/reports/multiqc_report.html {output}
         }} &> {log}
         """
