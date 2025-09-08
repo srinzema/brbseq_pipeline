@@ -22,6 +22,6 @@ rule all:
     input:
         rules.multiqc.output,
         expand(
-            rules.star_solo.output,
+            rules.matrix_to_tsv.output,
             sample=samples_df.loc[samples_df["cellbarcode_file"].notna(), "sample"].tolist()
         )

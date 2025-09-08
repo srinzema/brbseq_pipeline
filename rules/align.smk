@@ -1,4 +1,8 @@
 
+def cellbarcode_file(wildcards):
+    return samples_df.loc[samples_df["sample"] == wildcards.sample, "cellbarcode_file"].values[0]
+
+
 rule star_index:
     input:
         fasta=config["genome_dir"] + "/{genome}/{genome}.fa",
@@ -28,15 +32,18 @@ rule star_solo:
     input: 
         r1="trimmed/{sample}_R1.fastq.gz",
         r2="trimmed/{sample}_R2.fastq.gz",
-        cell_barcodes=lambda wildcards: samples_df.loc[samples_df["sample"] == wildcards.sample, "cellbarcode_file"].values[0],
+        cell_barcodes=cellbarcode_file,
         index=lambda wildcards: expand(
             rules.star_index.output, 
             genome=samples_df.loc[samples_df["sample"] == wildcards.sample, "genome"].values[0]
         )
     output:
-        directory=directory("STAR/{sample}/"),
-        matrix="STAR/{sample}/Solo.out/Gene/raw/matrix.mtx",
-        features="STAR/{sample}/Solo.out/Gene/raw/features.tsv",
+        matrix="STAR/{sample}/{sample}_Solo.out/Gene/raw/matrix.mtx",
+        features="STAR/{sample}/{sample}_Solo.out/Gene/raw/features.tsv",
+        barcodes="STAR/{sample}/{sample}_Solo.out/Gene/raw/barcodes.tsv",
+        log="STAR/{sample}/{sample}_Log.final.out",
+    params:
+        prefix="STAR/{sample}/{sample}_"
     log:
         "logs/star_solo/{sample}.log"
     threads: 20
@@ -57,7 +64,7 @@ rule star_solo:
             --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM \
             --outSAMmapqUnique 60 \
             --outSAMunmapped Within \
-            --outFileNamePrefix {output.directory} \
+            --outFileNamePrefix {params.prefix} \
             \
             --outFilterMultimapNmax 1  \
             \
@@ -72,5 +79,29 @@ rule star_solo:
             --soloBarcodeReadLength 0 \
             --soloStrand Forward \
             --soloFeatures Gene \
-            --quantMode GeneCounts &> {log}
+            --quantMode GeneCounts &>> {log}
+        """
+
+
+rule matrix_to_tsv:
+    input:
+        matrix=rules.star_solo.output.matrix,
+        features=rules.star_solo.output.features,
+        barcodes=rules.star_solo.output.barcodes,
+    output:
+        tsv="counts/{sample}.tsv"
+    log:
+        "logs/solo_to_tsv/{sample}.log"
+    threads: 1
+    conda:
+        "../envs/star.yaml"
+    shell:
+        """
+        set -euo pipefail
+        python {workflow.basedir}/scripts/matrix_to_tsv.py \
+            --matrix {input.matrix} \
+            --features {input.features} \
+            --barcodes {input.barcodes} \
+            --out {output.tsv} \
+            &> {log}
         """
