@@ -35,3 +35,30 @@ rule download_sra:
             touch {output}
         }} &> {log}
         """
+
+
+rule download_genome:
+    output:
+        fasta=config["genome_dir"] + "/{genome}/{genome}.fa",
+        gtf=config["genome_dir"] + "/{genome}/{genome}.annotation.gtf"
+    log:
+        "logs/download/{genome}.log"
+    threads: 8
+    params:
+        genome_dir=config["genome_dir"]
+    conda:
+        "../envs/download.yaml"
+    shell:
+        """
+        set -euo pipefail
+        {{
+            echo "Downloading {wildcards.genome}"
+            
+            genomepy install {wildcards.genome} \
+                -g {params.genome_dir} \
+                -l {wildcards.genome} \
+                -t {threads} \
+                -a
+
+        }} &>> {log}
+        """
