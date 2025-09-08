@@ -56,6 +56,7 @@ rule fastp:
 rule multiqc:
     input:
         fastp=expand("trimmed/reports/{sample}.json", sample=samples_df["sample"].tolist()),
+        star=expand("STAR/{sample}/{sample}.Log.final.out", sample=bulk_samples),
         star_solo=expand("STAR/{sample}/{sample}_Log.final.out", sample=brbseq_samples),
         sample_renaming="trimmed/reports/.sample_renaming.tsv"
     output:

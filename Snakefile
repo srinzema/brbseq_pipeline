@@ -13,6 +13,7 @@ for d in config["cellbarcodes"]:
     assert cellbarcode_file.exists(), f"Cell barcode file {cellbarcode_file} does not exist"
     samples_df.loc[samples_df["sample"] == sample, "cellbarcode_file"] = cellbarcode_file
 
+bulk_samples = samples_df.loc[samples_df["cellbarcode_file"].isna(), "sample"].tolist()
 brbseq_samples = samples_df.loc[samples_df["cellbarcode_file"].notna(), "sample"].tolist()
 
 include: "rules/download.smk"
@@ -22,6 +23,10 @@ include: "rules/align.smk"
 rule all:
     input:
         rules.multiqc.output,
+        expand(
+            rules.star.output.bam, 
+            sample=bulk_samples
+        ),
         expand(
             rules.matrix_to_tsv.output,
             sample=samples_df.loc[samples_df["cellbarcode_file"].notna(), "sample"].tolist()
