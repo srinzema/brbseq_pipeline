@@ -12,10 +12,13 @@ args = parser.parse_args()
 
 matrix = mmread(args.matrix).tocsc()
 features = pd.read_csv(args.features, header=None, sep="\t")
-barcodes = pd.read_csv(args.barcodes, header=["barcode", "alias"], sep="\t")
+barcodes = pd.read_csv(args.barcodes, header=None, sep="\t", names=["barcode", "alias"])
+print(barcodes.head())
 
 # Use alias if non-empty, otherwise keep barcode
-columns = barcodes["alias"].where(barcodes["alias"].notna() & (barcodes["alias"] != ""), barcodes["barcode"])
+columns = barcodes["alias"].where(
+    barcodes["alias"].notna() & (barcodes["alias"] != ""), barcodes["barcode"]
+)
 
 pd.DataFrame(
     matrix.toarray(),

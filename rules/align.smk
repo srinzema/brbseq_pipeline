@@ -140,7 +140,7 @@ rule matrix_to_tsv:
     input:
         matrix=rules.star_solo.output.matrix,
         features=rules.star_solo.output.features,
-        barcodes=rules.star_solo.output.barcodes,
+        barcodes=get_cellbarcode_file,
     output:
         tsv="counts/{sample}.tsv",
     wildcard_constraints:
