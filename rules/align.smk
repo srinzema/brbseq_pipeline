@@ -1,12 +1,22 @@
 from pathlib import Path
 
-def cellbarcode_file(wildcards):
+
+def get_cellbarcode_file(wildcards):
     return samples_df.loc[samples_df["sample"] == wildcards.sample, "cellbarcode_file"].values[0]
+
 
 def get_fastqs(wildcards):
     sample = wildcards.sample
-    files = Path("trimmed").glob(f"{sample}*.fastq.gz")
+    files = list(Path("trimmed").glob(f"{sample}*.fastq.gz"))
+    print(files)
     return files
+
+
+rule cellbarcode_file:
+    input: get_cellbarcode_file
+    output: temp(".{sample}.cb_alias.txt")
+    shell: "cut -f1 {input} > {output}"
+
 
 rule star_index:
     input:
@@ -34,9 +44,10 @@ rule star_index:
         """
 
 
-rule star:
+rule star_paired:
     input:
-        fastqs=get_fastqs,
+        r1="trimmed/{sample}_R1.fastq.gz",
+        r2="trimmed/{sample}_R2.fastq.gz",
         index=lambda wildcards: expand(
             rules.star_index.output.directory, 
             genome=samples_df.loc[samples_df["sample"] == wildcards.sample, "genome"].values[0]
@@ -53,7 +64,7 @@ rule star:
         """
         STAR --runThreadN {threads} \
              --genomeDir {input.index} \
-             --readFilesIn {input.fastqs} \
+             --readFilesIn {input.r1} {input.r2} \
              --readFilesCommand zcat \
              --outSAMtype BAM SortedByCoordinate \
              --outFileNamePrefix {params.prefix} &> {log}
@@ -64,7 +75,7 @@ rule star_solo:
     input: 
         r1="trimmed/{sample}_R1.fastq.gz",
         r2="trimmed/{sample}_R2.fastq.gz",
-        cell_barcodes=cellbarcode_file,
+        cell_barcodes=rules.cellbarcode_file.output,
         index=lambda wildcards: expand(
             rules.star_index.output.directory, 
             genome=samples_df.loc[samples_df["sample"] == wildcards.sample, "genome"].values[0]

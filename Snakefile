@@ -26,7 +26,7 @@ rule all:
     input:
         rules.multiqc.output,
         expand(
-            rules.star.output.bam, 
+            rules.star_paired.output.bam, 
             sample=bulk_samples
         ),
         expand(

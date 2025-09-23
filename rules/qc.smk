@@ -1,3 +1,6 @@
+ruleorder: fastp_paired > fastp_single
+
+
 rule sample_renaming:
     output: "trimmed/reports/.sample_renaming.tsv"
     run:
@@ -9,47 +12,42 @@ rule sample_renaming:
                 out_file.write(f"{sample}_R1\t{alias}\n")
 
 
-rule fastp:
-    input: "raw/{sample}.done"
-    output:    
+rule fastp_paired:
+    input:
+        fq1="raw/{sample}_R1.fastq.gz",
+        fq2="raw/{sample}_R2.fastq.gz"
+    output:
+        r1="trimmed/{sample}_R1.fastq.gz",
+        r2="trimmed/{sample}_R2.fastq.gz",
         html="trimmed/reports/{sample}.html",
-        json="trimmed/reports/{sample}.json",
+        json="trimmed/reports/{sample}.json"
     threads: 4
     log: "logs/fastp/{sample}.log"
-    shell:
+    shell: 
         """
-        set -euo pipefail
-        {{
-            echo "Processing sample {wildcards.sample}"
-            ls raw/{wildcards.sample}*
+        fastp -i {input.fq1} -I {input.fq2} \
+            -o {output.r1} -O {output.r2} \
+            -h {output.html} -j {output.json} \
+            -w {threads} &> {log}
+        """
 
-            FQ1="raw/{wildcards.sample}_R1.fastq.gz"
-            FQ2="raw/{wildcards.sample}_R2.fastq.gz"
-            SINGLE="raw/{wildcards.sample}.fastq.gz"
 
-            REPORT_HTML=trimmed/reports/{wildcards.sample}.html
-            REPORT_JSON=trimmed/reports/{wildcards.sample}.json
-
-            if [[ -f $FQ1 && -f $FQ2 ]]; then
-                fastp \
-                    -i $FQ1 -I $FQ2 \
-                    -o trimmed/{wildcards.sample}_R1.fastq.gz \
-                    -O trimmed/{wildcards.sample}_R2.fastq.gz \
-                    -h $REPORT_HTML  -j $REPORT_JSON \
-                    -w {threads}
-            elif [[ -f $SINGLE ]]; then
-                fastp \
-                    -i $SINGLE \
-                    -o trimmed/{wildcards.sample}.fastq.gz \
-                    -h $REPORT_HTML  -j $REPORT_JSON \
-                    -w {threads}
-            else
-                echo "Error: no input FASTQs found for {wildcards.sample}"
-                exit 1
-            fi
-        
-            touch {output}
-        }} &> {log}
+rule fastp_single:
+    input:
+        fq="raw/{sample}.fastq.gz"
+    output:
+        fq="trimmed/{sample}.fastq.gz",
+        html="trimmed/reports/{sample}.html",
+        json="trimmed/reports/{sample}.json"
+    threads: 4
+    log: "logs/fastp/{sample}.log"
+    wildcard_constraints:
+        sample=r"(?!.*_R[12]$)[A-Za-z0-9_.-]+"
+    shell: 
+        """
+        fastp -i {input.fq} -o {output.fq} \
+        -h {output.html} -j {output.json} \
+        -w {threads} &> {log}
         """
 
 
