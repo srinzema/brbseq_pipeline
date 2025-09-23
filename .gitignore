@@ -1,3 +1,6 @@
+# vscode
+*.code-workspace
+
 # Snakemake
 .snakemake/
 *.snakemake.log
