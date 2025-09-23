@@ -1,9 +1,11 @@
+import os
 import pandas as pd
 from pathlib import Path
 
 configfile: "config.yaml"
-working_dir: config["outdir"]
 samples_df = pd.read_csv(config["samples"], sep="\t", comment="#")
+working_dir: config["outdir"]
+
 
 # Set brbseq samples
 for d in config["cellbarcodes"]:
@@ -28,6 +30,6 @@ rule all:
             sample=bulk_samples
         ),
         expand(
-            rules.matrix_to_tsv.output,
+            rules.cellbarcode_summary.output,
             sample=samples_df.loc[samples_df["cellbarcode_file"].notna(), "sample"].tolist()
         )

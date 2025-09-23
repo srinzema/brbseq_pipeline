@@ -58,6 +58,7 @@ rule multiqc:
         fastp=expand("trimmed/reports/{sample}.json", sample=samples_df["sample"].tolist()),
         star=expand("STAR/{sample}/{sample}.Log.final.out", sample=bulk_samples),
         star_solo=expand("STAR/{sample}/{sample}_Log.final.out", sample=brbseq_samples),
+        cellbarcode_summary=expand("counts/.summaries/{sample}.cb_summary_mqcl.tsv", sample=brbseq_samples),
         sample_renaming="trimmed/reports/.sample_renaming.tsv"
     output:
         "multiqc_report.html"
@@ -72,3 +73,4 @@ rule multiqc:
             mv -v trimmed/reports/multiqc_report.html {output}
         }} &> {log}
         """
+
