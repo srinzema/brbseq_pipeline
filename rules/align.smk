@@ -94,6 +94,7 @@ rule star_solo:
         matrix="STAR/{sample}/{sample}_Solo.out/Gene/raw/matrix.mtx",
         features="STAR/{sample}/{sample}_Solo.out/Gene/raw/features.tsv",
         barcodes="STAR/{sample}/{sample}_Solo.out/Gene/raw/barcodes.tsv",
+        bam="STAR/{sample}/{sample}_Aligned.sortedByCoord.out.bam",
         log="STAR/{sample}/{sample}_Log.final.out",
     params:
         prefix="STAR/{sample}/{sample}_",
@@ -158,23 +159,5 @@ rule matrix_to_tsv:
             --features {input.features} \
             --barcodes {input.barcodes} \
             --out {output.tsv} \
-            &> {log}
-        """
-
-
-rule cellbarcode_summary:
-    input:
-        rules.matrix_to_tsv.output.tsv,
-    output:
-        "counts/.summaries/{sample}.cb_summary_mqc.tsv",
-    log:
-        "logs/cell_barcode_summary/{sample}.log",
-    threads: 1
-    shell:
-        """
-        set -euo pipefail
-        python {workflow.basedir}/scripts/cellbarcode_summary.py \
-            --count-table {input} \
-            --output {output} \
             &> {log}
         """
