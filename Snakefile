@@ -32,6 +32,7 @@ include: "rules/download.smk"
 include: "rules/qc.smk"
 include: "rules/align.smk"
 include: "rules/bam.smk"
+include: "rules/counts.smk"
 
 
 rule all:
@@ -44,3 +45,5 @@ rule all:
                 samples_df["cellbarcode_file"].notna(), "sample"
             ].tolist(),
         ),
+        expand("counts/brb_{sample}.tsv", sample=brbseq_samples),
+        expand("counts/bulk_{sample}.tsv", sample=bulk_samples),

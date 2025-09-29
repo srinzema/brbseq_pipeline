@@ -83,7 +83,7 @@ rule star_solo:
     input:
         r1="trimmed/{sample}_R1.fastq.gz",
         r2="trimmed/{sample}_R2.fastq.gz",
-        cell_barcodes=rules.cellbarcode_file.output,
+        cell_barcodes=get_cellbarcode_file,
         index=lambda wildcards: expand(
             rules.star_index.output.directory,
             genome=samples_df.loc[
@@ -91,7 +91,8 @@ rule star_solo:
             ].values[0],
         ),
     output:
-        matrix="STAR/{sample}/{sample}_Solo.out/Gene/raw/matrix.mtx",
+        tmpfile=temp(".{sample}.cb_alias.txt"),
+        matrix="STAR/{sample}/{sample}_Solo.out/Gene/raw/umiDedup-1MM_Directional.mtx",
         features="STAR/{sample}/{sample}_Solo.out/Gene/raw/features.tsv",
         barcodes="STAR/{sample}/{sample}_Solo.out/Gene/raw/barcodes.tsv",
         bam="STAR/{sample}/{sample}_Aligned.sortedByCoord.out.bam",
@@ -106,6 +107,7 @@ rule star_solo:
     shell:
         """
         set -euo pipefail
+        cut -f1 {input.cell_barcodes} > {output.tmpfile}
         STAR \
             --runMode alignReads \
             --runThreadN {threads} \
@@ -126,10 +128,10 @@ rule star_solo:
             --soloCBstart 1 --soloCBlen 14 \
             --soloUMIstart 15 --soloUMIlen 14 \
             --clipAdapterType CellRanger4 \
-            --soloUMIdedup 1MM_Directional \
+            --soloUMIdedup NoDedup 1MM_Directional \
             --soloCBmatchWLtype 1MM \
             --soloCellFilter None \
-            --soloCBwhitelist {input.cell_barcodes} \
+            --soloCBwhitelist {output.tmpfile} \
             --soloBarcodeReadLength 0 \
             --soloStrand Forward \
             --soloFeatures Gene \
@@ -137,27 +139,3 @@ rule star_solo:
         """
 
 
-rule matrix_to_tsv:
-    input:
-        matrix=rules.star_solo.output.matrix,
-        features=rules.star_solo.output.features,
-        barcodes=get_cellbarcode_file,
-    output:
-        tsv="counts/{sample}.tsv",
-    wildcard_constraints:
-        sample=r"(?!\.summaries/).*",
-    log:
-        "logs/solo_to_tsv/{sample}.log",
-    threads: 1
-    conda:
-        "../envs/star.yaml"
-    shell:
-        """
-        set -euo pipefail
-        python {workflow.basedir}/scripts/matrix_to_tsv.py \
-            --matrix {input.matrix} \
-            --features {input.features} \
-            --barcodes {input.barcodes} \
-            --out {output.tsv} \
-            &> {log}
-        """

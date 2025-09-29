@@ -1,5 +1,10 @@
 ruleorder: fastp_paired > fastp_single
 
+def get_cellbarcode_file(wildcards):
+    return samples_df.loc[
+        samples_df["sample"] == wildcards.sample, "cellbarcode_file"
+    ].values[0]
+
 
 rule sample_renaming:
     output:
@@ -53,6 +58,25 @@ rule fastp_single:
         -w {threads} &> {log}
         """
 
+rule count_raw_barcodes:
+    input:
+        barcode_file=get_cellbarcode_file,
+        fastq="raw/{sample}_R1.fastq.gz",
+    output:
+        "counts/.summaries/{sample}.raw_cb_summary_mqc.tsv",
+    threads: 4
+    log:
+        "logs/cellbarcode_qc/{sample}.log",
+    shell:
+        """
+        set -euo pipefail
+        python {workflow.basedir}/scripts/cellbarcode_qc.py \
+            --barcode-file {input.barcode_file} \
+            --fastq {input.fastq} \
+            --outfile {output} \
+            --threads {threads} &> {log}
+        """
+
 
 rule multiqc:
     input:
@@ -61,6 +85,9 @@ rule multiqc:
         ),
         star=expand("STAR/{sample}/{sample}.Log.final.out", sample=bulk_samples),
         star_solo=expand("STAR/{sample}/{sample}_Log.final.out", sample=brbseq_samples),
+        raw_cellbarcode=expand(
+            "counts/.summaries/{sample}.raw_cb_summary_mqc.tsv", sample=brbseq_samples
+        ),
         cellbarcode_summary=expand(
             "counts/.summaries/{sample}.cb_summary_mqc.tsv", sample=brbseq_samples
         ),
